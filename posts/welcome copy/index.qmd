@@ -1,0 +1,142 @@
+---
+title: "Regressão linear"
+author: "Eduardo Nicolau Martins"
+date: "2025-11-20"
+categories: [Matemática, Logica, Python]
+---
+
+Este script implementa, do zero, um processo completo de Regressão Linear Simples usando apenas operações matriciais e a biblioteca plotnine para visualização. Ele lê valores de X e Y a partir de arquivos .txt, calcula a reta que melhor se ajusta aos dados e gera automaticamente um gráfico em PNG, abrindo-o no navegador.
+
+![](g2.png)
+
+Primeiramente começaremos com os imports
+
+```
+import numpy as np
+import pandas as pd
+from plotnine import ggplot, aes, geom_point, geom_smooth, geom_abline, ggsave, theme_light, labs
+import webbrowser
+import os
+```
+
+Leitura dos Dados de Entrada
+
+O programa começa carregando os valores de X e Y a partir de dois arquivos de texto
+
+```
+with open(r"X.txt", "r") as f:
+    valores_x = [float(linha.strip()) for linha in f if linha.strip()]
+
+with open(r"y.txt", "r") as f:
+    valores_y = [float(linha.strip()) for linha in f if linha.strip()]
+
+if len(valores_x) != len(valores_y):
+    raise ValueError(f"Os arquivos têm tamanhos diferentes: X={len(valores_x)}, y={len(valores_y)}")
+
+Y = np.array(valores_y)
+
+
+X_matriz = np.column_stack((np.ones(len(valores_x)), valores_x))
+```
+Regressão Linear pelo Método Matricial
+
+Diferente de usar bibliotecas prontas como sklearn, aqui a regressão é feita usando a fórmula clássica
+
+```
+X_T = X_matriz.T                     
+XT_X = X_T @ X_matriz               
+XT_X_inv = np.linalg.inv(XT_X)       
+XT_y = X_T @ Y                      
+
+
+beta = XT_X_inv @ XT_y
+
+
+intercepto_a = beta[0]
+inclinacao_b = beta[1]
+```
+
+Construção do Gráfico com plotnine
+
+```
+df = pd.DataFrame({"x": valores_x, "y": valores_y})
+
+
+plot = (
+  ggplot(df, aes("x", "y"))
+  + geom_point(color="black", alpha=0.5) 
+  + geom_abline(intercept=intercepto_a, slope=inclinacao_b, color="blue", size=1.5) 
+  + labs(x="x", y="y")
+  + theme_light()
+)
+```
+
+E por fim, gera o grafico 
+
+```
+plot.save("grafico.png") 
+
+print("Abrindo o gráfico no navegador...")
+caminho_arquivo = os.path.abspath("grafico.png")
+webbrowser.open(r"C:\Users\eduar\Downloads\Documents\Scripts\grafico.png")
+```
+
+Código completo!
+
+```
+
+import numpy as np
+import pandas as pd
+from plotnine import ggplot, aes, geom_point, geom_smooth, geom_abline, ggsave, theme_light, labs
+import webbrowser
+import os
+
+with open(r"C:\Users\eduar\Downloads\Documents\Scripts\atividades\X.txt", "r") as f:
+    valores_x = [float(linha.strip()) for linha in f if linha.strip()]
+
+with open(r"C:\Users\eduar\Downloads\Documents\Scripts\atividades\y.txt", "r") as f:
+    valores_y = [float(linha.strip()) for linha in f if linha.strip()]
+
+if len(valores_x) != len(valores_y):
+    raise ValueError(f"Os arquivos têm tamanhos diferentes: X={len(valores_x)}, y={len(valores_y)}")
+
+Y = np.array(valores_y)
+
+
+X_matriz = np.column_stack((np.ones(len(valores_x)), valores_x))
+
+
+X_T = X_matriz.T                     
+XT_X = X_T @ X_matriz               
+XT_X_inv = np.linalg.inv(XT_X)       
+XT_y = X_T @ Y                      
+
+
+beta = XT_X_inv @ XT_y
+
+
+intercepto_a = beta[0]
+inclinacao_b = beta[1]
+
+print(f"Cálculo Concluído!")
+print(f"Intercepto (a): {intercepto_a}")
+print(f"Inclinação (b): {inclinacao_b}")
+print(f"Equação da reta: y = {intercepto_a:.4f} + {inclinacao_b:.4f}x")
+
+
+df = pd.DataFrame({"x": valores_x, "y": valores_y})
+
+
+plot = (
+  ggplot(df, aes("x", "y"))
+  + geom_point(color="black", alpha=0.5) 
+  + geom_abline(intercept=intercepto_a, slope=inclinacao_b, color="blue", size=1.5) 
+  + labs(x="x", y="y")
+  + theme_light()
+)
+plot.save("grafico.png") 
+
+print("Abrindo o gráfico no navegador...")
+caminho_arquivo = os.path.abspath("grafico.png")
+webbrowser.open(r"C:\Users\eduar\Downloads\Documents\Scripts\grafico.png")
+```

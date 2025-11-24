@@ -1,0 +1,183 @@
+---
+title: "API Cotação"
+author: "Eduardo Nicolau Martins"
+date: "2025-11-23"
+categories: [API, Code, Python, Cotação]
+image: "grafico.png"
+jupyter: python3
+---
+
+Neste post, vamos explorar um script em Python criado para consultar a cotação diária do dólar (PTAX) diretamente da API do Banco Central do Brasil e gerar automaticamente um gráfico interativo para qualquer mês desejado.
+
+Bibliotecas utilizadas
+
+```
+import pandas as pd
+import requests
+import plotly.express as px
+import calendar
+from datetime import datetime
+import os
+```
+
+O usuário informa o período no formato MMYYYY (por exemplo, “042017”).
+O código converte essa string em uma data válida com datetime.strptime()
+
+Essas datas são então formatadas no padrão MM-DD-YYYY, conforme exigido pela API do Banco Central.
+
+```
+def gerar_grafico_dolar(periodo_mmyyyy):
+    try:
+        first_date = datetime.strptime(periodo_mmyyyy, "%m%Y")
+    except ValueError:
+        print("Formato inválido.")
+        return
+
+    last_day = calendar.monthrange(first_date.year, first_date.month)[1]
+    last_date = first_date.replace(day=last_day)
+    
+    start_str = first_date.strftime("%m-%d-%Y")
+    end_str = last_date.strftime("%m-%d-%Y")
+
+```
+
+Processamento dos dados com Pandas
+
+```
+    
+    base_url = "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarPeriodo(dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)"
+    url = f"{base_url}?@dataInicial='{start_str}'&@dataFinalCotacao='{end_str}'&$top=1000&$format=json"
+    
+    
+    response = requests.get(url)
+    data_json = response.json()
+    
+    if not data_json['value']:
+        print("Nenhum dado retornado pela API.")
+        return
+
+    df = pd.DataFrame(data_json['value'])
+    df = df[['dataHoraCotacao', 'cotacaoVenda']]
+    df['dataHoraCotacao'] = pd.to_datetime(df['dataHoraCotacao']).dt.normalize()
+    df = df.set_index('dataHoraCotacao')
+
+    idx_completo = pd.date_range(start=first_date, end=last_date)
+    df = df.reindex(idx_completo)
+
+    df['cotacaoVenda'] = df['cotacaoVenda'].ffill()
+    df['cotacaoVenda'] = df['cotacaoVenda'].bfill()
+```
+
+Geração do gráfico interativo com Plotly
+
+```
+if not data_json['value']:
+        print("Nenhum dado retornado pela API.")
+        return
+
+    df = pd.DataFrame(data_json['value'])
+    df = df[['dataHoraCotacao', 'cotacaoVenda']]
+    df['dataHoraCotacao'] = pd.to_datetime(df['dataHoraCotacao']).dt.normalize()
+    df = df.set_index('dataHoraCotacao')
+
+    idx_completo = pd.date_range(start=first_date, end=last_date)
+    df = df.reindex(idx_completo)
+
+    df['cotacaoVenda'] = df['cotacaoVenda'].ffill()
+    df['cotacaoVenda'] = df['cotacaoVenda'].bfill()
+
+    df = df.reset_index()
+    df.columns = ['Data', 'Cotação (R$)']
+
+    fig = px.line(
+        df,
+        x='Data',
+        y='Cotação (R$)',
+        title=f'Cotação do Dólar (Venda) - {first_date.strftime("%m/%Y")}',
+        markers=True
+    )
+    
+```
+
+Por fim a geração de imagem e site
+
+```
+    
+    nome_arquivo = f"grafico_dolar_{periodo_mmyyyy}.html"
+    fig.write_html(nome_arquivo)
+
+    try:
+        os.startfile(nome_arquivo)
+    except:
+        pass
+
+gerar_grafico_dolar("042017")
+```
+
+Código completo
+
+```{python}
+import pandas as pd
+import requests
+import plotly.express as px
+import calendar
+from datetime import datetime
+import os
+
+def gerar_grafico_dolar(periodo_mmyyyy):
+    try:
+        first_date = datetime.strptime(periodo_mmyyyy, "%m%Y")
+    except ValueError:
+        print("Formato inválido.")
+        return
+
+    last_day = calendar.monthrange(first_date.year, first_date.month)[1]
+    last_date = first_date.replace(day=last_day)
+    
+    start_str = first_date.strftime("%m-%d-%Y")
+    end_str = last_date.strftime("%m-%d-%Y")
+
+    base_url = "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarPeriodo(dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)"
+    url = f"{base_url}?@dataInicial='{start_str}'&@dataFinalCotacao='{end_str}'&$top=1000&$format=json"
+    
+    response = requests.get(url)
+    data_json = response.json()
+    
+    if not data_json['value']:
+        print("Nenhum dado retornado pela API.")
+        return
+
+    df = pd.DataFrame(data_json['value'])
+    df = df[['dataHoraCotacao', 'cotacaoVenda']]
+    df['dataHoraCotacao'] = pd.to_datetime(df['dataHoraCotacao']).dt.normalize()
+    df = df.set_index('dataHoraCotacao')
+
+    idx_completo = pd.date_range(start=first_date, end=last_date)
+    df = df.reindex(idx_completo)
+
+    df['cotacaoVenda'] = df['cotacaoVenda'].ffill()
+    df['cotacaoVenda'] = df['cotacaoVenda'].bfill()
+
+    df = df.reset_index()
+    df.columns = ['Data', 'Cotação (R$)']
+
+    fig = px.line(
+        df,
+        x='Data',
+        y='Cotação (R$)',
+        title=f'Cotação do Dólar (Venda) - {first_date.strftime("%m/%Y")}',
+        markers=True
+    )
+    
+    nome_arquivo = f"grafico_dolar_{periodo_mmyyyy}.html"
+    fig.write_html(nome_arquivo)
+
+    try:
+        os.startfile(nome_arquivo)
+    except:
+        pass
+
+gerar_grafico_dolar("042017")
+```
+
+![resultado](grafico.png)
